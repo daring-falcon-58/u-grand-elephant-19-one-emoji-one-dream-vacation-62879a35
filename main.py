@@ -41,7 +41,33 @@ import sys
 EMOJI = "\U0001F5FB"
 
 
+def validate_entry() -> str | None:
+    """Pre-write guard: the entry must be exactly one emoji.
+
+    Returns an error message if the constant is wrong, else None.
+    This catches a bad edit to EMOJI (extra char, trailing space,
+    multi-code-point sequence such as 🏔️ U+1F3D4 U+FE0F) BEFORE any
+    file is written, so a broken entry can never be submitted silently.
+    The judge requires exactly one emoji, 1–8 chars, not only
+    whitespace; Fuji is 1 code point / 4 UTF-8 bytes.
+    """
+    if len(EMOJI) != 1:
+        return f"EMOJI must be exactly 1 code point, got {len(EMOJI)}: {EMOJI!r}"
+    if EMOJI.isspace():
+        return f"EMOJI must not be whitespace: {EMOJI!r}"
+    if len(EMOJI.encode("utf-8")) != 4:
+        return (
+            f"EMOJI must encode to 4 UTF-8 bytes, got "
+            f"{len(EMOJI.encode('utf-8'))}: {EMOJI!r}"
+        )
+    return None
+
+
 def main() -> int:
+    error = validate_entry()
+    if error is not None:
+        print(f"error: invalid entry: {error}", file=sys.stderr)
+        return 1
     out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
     os.makedirs(out_dir, exist_ok=True)
     path = os.path.join(out_dir, "entry.txt")
